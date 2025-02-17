@@ -1,25 +1,56 @@
 import { useState, useEffect } from "react";
-import { Expense } from ".././types";
+import { Expense } from "../types";
 
 const STORAGE_KEY = "expenses";
 
+// ローカルストレージから最新データを取得
+const getStoredExpenses = (): Expense[] => {
+  const storedData = localStorage.getItem(STORAGE_KEY);
+  return storedData ? JSON.parse(storedData) : [];
+};
+
 export const useExpenses = () => {
-  const [expenses, setExpenses] = useState<Expense[]>(() => {
-    // 🔹 初回レンダリング時にローカルストレージからデータを読み込む
-    const storedData = localStorage.getItem(STORAGE_KEY);
-    return storedData ? JSON.parse(storedData) : [];
-  });
+  const [expenses, setExpenses] = useState<Expense[]>(getStoredExpenses);
 
-  // 🔹 データが変更されるたびにローカルストレージに保存
+  // 🔹 ローカルストレージが変更されたら自動的に更新する
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
-  }, [expenses]);
+    const syncWithLocalStorage = () => {
+      setExpenses(getStoredExpenses());
+    };
 
-  // 収支データを追加
-  const addExpense = (expense: Omit<Expense, "id">) => {
-    const newExpense = { id: Date.now(), ...expense };
-    setExpenses(prevExpenses => [...prevExpenses, newExpense].sort((a, b) => (a.date > b.date ? 1 : -1)));
+    window.addEventListener("storage", syncWithLocalStorage);
+    return () => window.removeEventListener("storage", syncWithLocalStorage);
+  }, []);
+
+  const updateLocalStorage = (updatedExpenses: Expense[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedExpenses));
+    setExpenses([...updatedExpenses]); // 強制更新
   };
 
-  return { expenses, addExpense };
+  const addExpense = (expense: Omit<Expense, "id">) => {
+    const currentExpenses = getStoredExpenses();
+    const newExpense = { id: Date.now(), ...expense };
+    const updatedExpenses = [...currentExpenses, newExpense].sort((a, b) => (a.date > b.date ? -1 : 1));
+    updateLocalStorage(updatedExpenses);
+  };
+
+  const updateExpense = (id: number, updatedExpense: Expense) => {
+    const currentExpenses = getStoredExpenses();
+    const updatedExpenses = currentExpenses.map((exp) => (exp.id === id ? updatedExpense : exp));
+    updateLocalStorage(updatedExpenses);
+    window.location.reload();
+  };
+
+  const deleteExpense = (id: number) => {
+    const currentExpenses = getStoredExpenses();
+    const updatedExpenses = currentExpenses.filter((exp) => exp.id !== id);
+    updateLocalStorage(updatedExpenses);
+    window.location.reload();
+  };
+
+  const getLatestExpenses = () => {
+    return getStoredExpenses().sort((a, b) => (a.date > b.date ? -1 : 1)).slice(0, 5);
+  };
+
+  return { expenses, addExpense, updateExpense, deleteExpense, getLatestExpenses };
 };
