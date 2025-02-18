@@ -25,6 +25,7 @@ export const useExpenses = () => {
   const updateLocalStorage = (updatedExpenses: Expense[]) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedExpenses));
     setExpenses([...updatedExpenses]); // 強制更新
+    window.location.reload();
   };
 
   const addExpense = (expense: Omit<Expense, "id">) => {
@@ -38,14 +39,14 @@ export const useExpenses = () => {
     const currentExpenses = getStoredExpenses();
     const updatedExpenses = currentExpenses.map((exp) => (exp.id === id ? updatedExpense : exp));
     updateLocalStorage(updatedExpenses);
-    window.location.reload();
+    //window.location.reload();
   };
 
   const deleteExpense = (id: number) => {
     const currentExpenses = getStoredExpenses();
     const updatedExpenses = currentExpenses.filter((exp) => exp.id !== id);
     updateLocalStorage(updatedExpenses);
-    window.location.reload();
+    //window.location.reload();
   };
 
   const getLatestExpenses = () => {
